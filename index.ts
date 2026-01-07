@@ -25,7 +25,16 @@ app.post('/upload', upload.single('pdf'), (req, res) => {
 });
 
 app.get('/download/:filename', (req, res) => {
-  const filePath = path.join(process.cwd(), 'uploads', req.params.filename);
+  // Sanitize filename to prevent path traversal attacks
+  const sanitizedFilename = path.basename(req.params.filename);
+  const uploadsDir = path.resolve(process.cwd(), 'uploads');
+  const filePath = path.resolve(uploadsDir, sanitizedFilename);
+  
+  // Verify the resolved path is within the uploads directory
+  if (!filePath.startsWith(uploadsDir)) {
+    return res.status(400).send('Invalid file path');
+  }
+  
   const fileStream = fs.createReadStream(filePath);
   fileStream.on('error', () => {
     res.status(404).send('File not found');
